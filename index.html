@@ -61,7 +61,8 @@ th:hover { color:#3b82f6; }
 th .sort-icon { margin-left:3px; opacity:.4; }
 th.sorted .sort-icon { opacity:1; color:#3b82f6; }
 td { padding:8px 10px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
-tbody tr:hover { background:#f8fafc; }
+tbody tr { cursor:pointer; }
+tbody tr:hover { background:#eff6ff; }
 tbody tr:last-child td { border-bottom:none; }
 
 .col-num   { color:#94a3b8; font-size:12px; width:36px; }
@@ -89,6 +90,90 @@ a.go:hover { background:#2563eb; }
 .pg-btn:disabled { opacity:.35; cursor:default; }
 .pg-info { font-size:12px; color:#94a3b8; padding:0 8px; }
 
+/* ── Modal ── */
+.modal-backdrop {
+  position:fixed; inset:0; background:rgba(15,23,42,.55);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000; padding:16px; animation:fadeIn .15s ease;
+}
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+
+.modal {
+  background:#fff; border-radius:12px; width:100%; max-width:720px;
+  max-height:90vh; display:flex; flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  animation:slideUp .2s ease;
+}
+@keyframes slideUp { from { transform:translateY(20px); opacity:0 } to { transform:translateY(0); opacity:1 } }
+
+.modal-header {
+  padding:16px 20px 12px; border-bottom:1px solid #f1f5f9;
+  display:flex; align-items:flex-start; gap:12px;
+}
+.modal-header-info { flex:1; min-width:0; }
+.modal-title { font-size:15px; font-weight:700; color:#1e293b; line-height:1.35; }
+.modal-brand { font-size:12px; color:#64748b; margin-top:2px; }
+.modal-close {
+  background:none; border:none; cursor:pointer; font-size:20px;
+  color:#94a3b8; line-height:1; padding:2px; flex-shrink:0;
+}
+.modal-close:hover { color:#1e293b; }
+
+.modal-meta {
+  display:flex; gap:8px; flex-wrap:wrap; padding:10px 20px;
+  border-bottom:1px solid #f1f5f9;
+}
+.meta-chip {
+  background:#f1f5f9; border-radius:20px; padding:4px 12px;
+  font-size:12px; font-weight:500; color:#475569;
+}
+.meta-chip.price  { background:#dcfce7; color:#166534; }
+.meta-chip.score-hi  { background:#d1fae5; color:#065f46; }
+.meta-chip.score-mid { background:#fef3c7; color:#92400e; }
+.meta-chip.score-lo  { background:#fee2e2; color:#991b1b; }
+.meta-chip.value  { background:#ede9fe; color:#5b21b6; }
+
+.modal-ings {
+  padding:10px 20px; font-size:12px; color:#475569;
+  border-bottom:1px solid #f1f5f9; line-height:1.5;
+}
+.modal-ings strong { color:#334155; font-size:11px; text-transform:uppercase;
+                     letter-spacing:.4px; display:block; margin-bottom:4px; }
+
+.modal-body { overflow-y:auto; padding:0; flex:1; }
+
+.modal-section-title {
+  padding:12px 20px 8px; font-size:11px; font-weight:700; color:#94a3b8;
+  text-transform:uppercase; letter-spacing:.5px;
+  border-bottom:1px solid #f1f5f9; position:sticky; top:0; background:#fff; z-index:1;
+}
+
+.modal-table-wrap { overflow-x:auto; }
+.modal-table { width:100%; border-collapse:collapse; }
+.modal-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:600;
+                  color:#94a3b8; text-transform:uppercase; border-bottom:1px solid #e2e8f0; }
+.modal-table td { padding:8px 12px; border-bottom:1px solid #f8fafc; font-size:13px; }
+.modal-table tbody tr:hover { background:#f8fafc; }
+.modal-table .sim-bar { display:inline-block; height:6px; border-radius:3px;
+                        background:#3b82f6; vertical-align:middle; margin-right:6px; }
+.modal-no-analogs { padding:20px; text-align:center; color:#94a3b8; font-size:13px; }
+
+.modal-footer {
+  padding:12px 20px; border-top:1px solid #f1f5f9;
+  display:flex; justify-content:flex-end; gap:8px;
+}
+.btn-primary {
+  background:#3b82f6; color:#fff; border:none; border-radius:6px;
+  padding:8px 18px; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none;
+  display:inline-block;
+}
+.btn-primary:hover { background:#2563eb; }
+.btn-ghost {
+  background:#f1f5f9; color:#64748b; border:none; border-radius:6px;
+  padding:8px 16px; font-size:13px; cursor:pointer;
+}
+.btn-ghost:hover { background:#e2e8f0; }
+
 .empty { text-align:center; padding:40px; color:#94a3b8; }
 .loading { text-align:center; padding:60px; color:#64748b; }
 
@@ -96,6 +181,7 @@ a.go:hover { background:#2563eb; }
   .col-name { max-width:130px; }
   .col-ings { display:none; }
   .col-brand { max-width:90px; }
+  .modal { max-height:95vh; border-radius:8px; }
 }
 </style>
 </head>
@@ -108,20 +194,120 @@ a.go:hover { background:#2563eb; }
 
 <div id="app"><div class="loading">Загрузка…</div></div>
 
-<!-- Preact + htm (React-совместимый, 3 KB, без сборки) -->
 <script type="module">
 import { h, render, Fragment } from 'https://esm.sh/preact@10';
-import { useState, useEffect, useMemo, useCallback, useRef } from 'https://esm.sh/preact@10/hooks';
+import { useState, useEffect, useMemo, useCallback } from 'https://esm.sh/preact@10/hooks';
 import htm from 'https://esm.sh/htm@3';
 import Fuse from 'https://esm.sh/fuse.js@7';
 
 const html = htm.bind(h);
 const PAGE_SIZE = 50;
 
-// ─── Утилиты ──────────────────────────────────────────────────────────────────
 function scoreClass(s) { return s >= 100 ? 'sh' : s >= 60 ? 'sm' : 'sl'; }
+function scoreChipClass(s) { return s >= 100 ? 'score-hi' : s >= 60 ? 'score-mid' : 'score-lo'; }
 
-// ─── Компонент пагинации ──────────────────────────────────────────────────────
+// ─── Закрытие по Escape ───────────────────────────────────────────────────────
+function useEscClose(onClose) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+}
+
+// ─── Модальное окно ───────────────────────────────────────────────────────────
+function Modal({ product, analogs, onClose }) {
+  useEscClose(onClose);
+
+  // Блокируем скролл страницы при открытом попапе
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  const productAnalogs = analogs?.[product.id] || [];
+
+  const stopProp = useCallback((e) => e.stopPropagation(), []);
+
+  return html`
+    <div class="modal-backdrop" onClick=${onClose}>
+      <div class="modal" onClick=${stopProp}>
+
+        <!-- Заголовок -->
+        <div class="modal-header">
+          <div class="modal-header-info">
+            <div class="modal-title">${product.n}</div>
+            <div class="modal-brand">${product.b}</div>
+          </div>
+          <button class="modal-close" onClick=${onClose}>✕</button>
+        </div>
+
+        <!-- Метрики -->
+        <div class="modal-meta">
+          <span class="meta-chip price">${product.p} ₴</span>
+          <span class="meta-chip ${scoreChipClass(product.s)}">Скор: ${product.s}</span>
+          <span class="meta-chip value">Ценность: ${product.v}</span>
+        </div>
+
+        <!-- Ключевые ингредиенты -->
+        ${product.i && html`
+          <div class="modal-ings">
+            <strong>Ключевые ингредиенты</strong>
+            ${product.i}
+          </div>`}
+
+        <!-- Аналоги -->
+        <div class="modal-body">
+          <div class="modal-section-title">
+            Аналоги по составу (${productAnalogs.length})
+          </div>
+
+          ${productAnalogs.length === 0
+            ? html`<div class="modal-no-analogs">Аналоги не найдены</div>`
+            : html`<div class="modal-table-wrap">
+                <table class="modal-table">
+                  <thead><tr>
+                    <th>#</th>
+                    <th>Бренд</th>
+                    <th>Название</th>
+                    <th>Цена</th>
+                    <th>Сходство</th>
+                    <th></th>
+                  </tr></thead>
+                  <tbody>
+                    ${productAnalogs.map((a, i) => html`<tr key=${a.id}>
+                      <td style="color:#94a3b8;font-size:12px">${i+1}</td>
+                      <td style="font-weight:600;color:#1e293b">${a.b}</td>
+                      <td style="color:#334155;max-width:240px">${a.n}</td>
+                      <td style="color:#059669;font-weight:600;white-space:nowrap">${a.p} ₴</td>
+                      <td>
+                        <span class="sim-bar" style=${'width:'+Math.round(a.sim*0.6)+'px'}></span>
+                        <strong>${a.sim}%</strong>
+                      </td>
+                      <td>
+                        <a class="go" href=${'https://makeup.com.ua/product/'+a.id+'/'}
+                           target="_blank">→</a>
+                      </td>
+                    </tr>`)}
+                  </tbody>
+                </table>
+              </div>`}
+        </div>
+
+        <!-- Футер -->
+        <div class="modal-footer">
+          <button class="btn-ghost" onClick=${onClose}>Закрыть</button>
+          <a class="btn-primary"
+             href=${'https://makeup.com.ua/product/'+product.id+'/'}
+             target="_blank">
+            Открыть на сайте →
+          </a>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ─── Пагинация ────────────────────────────────────────────────────────────────
 function Pager({ page, total, onChange }) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   if (totalPages <= 1) return null;
@@ -145,8 +331,8 @@ function Pager({ page, total, onChange }) {
   </div>`;
 }
 
-// ─── Компонент таблицы ────────────────────────────────────────────────────────
-function DataTable({ rows, page, sortCol, sortDir, onSort }) {
+// ─── Таблица ──────────────────────────────────────────────────────────────────
+function DataTable({ rows, page, sortCol, sortDir, onSort, onRowClick }) {
   const start = (page - 1) * PAGE_SIZE;
   const pageRows = rows.slice(start, start + PAGE_SIZE);
 
@@ -172,7 +358,7 @@ function DataTable({ rows, page, sortCol, sortDir, onSort }) {
     <tbody>
       ${pageRows.length === 0
         ? html`<tr><td colspan="8" class="empty">Ничего не найдено</td></tr>`
-        : pageRows.map((r, i) => html`<tr key=${r.id}>
+        : pageRows.map((r, i) => html`<tr key=${r.id} onClick=${()=>onRowClick(r)}>
             <td class="col-num">${start + i + 1}</td>
             <td class="col-brand" title=${r.b}>${r.b}</td>
             <td class="col-name">${r.n}</td>
@@ -180,7 +366,10 @@ function DataTable({ rows, page, sortCol, sortDir, onSort }) {
             <td class="col-score ${scoreClass(r.s)}">${r.s}</td>
             <td class="col-value">${r.v}</td>
             <td class="col-ings">${r.i}</td>
-            <td><a class="go" href=${'https://makeup.com.ua/product/'+r.id+'/'} target="_blank">→</a></td>
+            <td><a class="go"
+                   href=${'https://makeup.com.ua/product/'+r.id+'/'}
+                   target="_blank"
+                   onClick=${e=>e.stopPropagation()}>→</a></td>
           </tr>`)
       }
     </tbody>
@@ -189,68 +378,61 @@ function DataTable({ rows, page, sortCol, sortDir, onSort }) {
 
 // ─── Главный компонент ────────────────────────────────────────────────────────
 function App() {
-  const [data,       setData]       = useState(null);
-  const [tab,        setTab]        = useState('face');
-  const [hairKey,    setHairKey]    = useState('dry');
-  const [search,     setSearch]     = useState('');
-  const [sortCol,    setSortCol]    = useState('v');
-  const [sortDir,    setSortDir]    = useState('desc');
-  const [minPrice,   setMinPrice]   = useState('');
-  const [maxPrice,   setMaxPrice]   = useState('');
-  const [page,       setPage]       = useState(1);
+  const [data,      setData]      = useState(null);
+  const [analogs,   setAnalogs]   = useState(null);
+  const [tab,       setTab]       = useState('face');
+  const [hairKey,   setHairKey]   = useState('dry');
+  const [search,    setSearch]    = useState('');
+  const [sortCol,   setSortCol]   = useState('v');
+  const [sortDir,   setSortDir]   = useState('desc');
+  const [minPrice,  setMinPrice]  = useState('');
+  const [maxPrice,  setMaxPrice]  = useState('');
+  const [page,      setPage]      = useState(1);
+  const [selected,  setSelected]  = useState(null);   // ← выбранный продукт для попапа
 
-  const searchRef = useRef();
-
-  // Загрузка данных
+  // Загружаем data.json и analogs.json параллельно
   useEffect(() => {
-    fetch('data.json')
-      .then(r => r.json())
-      .then(d => { setData(d); })
-      .catch(e => console.error('Ошибка загрузки data.json:', e));
+    Promise.all([
+      fetch('data.json').then(r => r.json()),
+      fetch('analogs.json').then(r => r.json()),
+    ]).then(([d, a]) => { setData(d); setAnalogs(a); })
+      .catch(e => console.error('Ошибка загрузки:', e));
   }, []);
 
-  // Сырые строки текущей вкладки
   const rawRows = useMemo(() => {
     if (!data) return [];
     if (tab === 'shampoo') return data.shampoo[hairKey]?.rows || [];
     return data.tabs.find(t => t.id === tab)?.rows || [];
   }, [data, tab, hairKey]);
 
-  // Fuse-индекс пересчитывается только при смене вкладки
   const fuse = useMemo(() => new Fuse(rawRows, {
     keys: [{ name:'n', weight:2 }, { name:'b', weight:2 }, { name:'i', weight:1 }],
-    threshold: 0.35,
-    ignoreLocation: true,
-    minMatchCharLength: 2,
+    threshold: 0.35, ignoreLocation: true, minMatchCharLength: 2,
   }), [rawRows]);
 
-  // Отфильтрованные + отсортированные строки
   const filtered = useMemo(() => {
     let rows = search.trim().length >= 2
       ? fuse.search(search.trim()).map(r => r.item)
       : rawRows;
-
     const minP = parseFloat(minPrice) || 0;
     const maxP = parseFloat(maxPrice) || Infinity;
-    if (minP > 0)         rows = rows.filter(r => r.p >= minP);
-    if (maxP < Infinity)  rows = rows.filter(r => r.p <= maxP);
-
+    if (minP > 0)        rows = rows.filter(r => r.p >= minP);
+    if (maxP < Infinity) rows = rows.filter(r => r.p <= maxP);
     return [...rows].sort((a, b) =>
       sortDir === 'asc' ? a[sortCol] - b[sortCol] : b[sortCol] - a[sortCol]
     );
   }, [rawRows, fuse, search, minPrice, maxPrice, sortCol, sortDir]);
 
-  // При смене вкладки — сбрасываем страницу
-  const switchTab = useCallback((id) => { setTab(id); setPage(1); }, []);
-  const switchHair = useCallback((k) => { setHairKey(k); setPage(1); }, []);
-
+  const switchTab  = useCallback((id) => { setTab(id);     setPage(1); }, []);
+  const switchHair = useCallback((k)  => { setHairKey(k);  setPage(1); }, []);
   const handleSort = useCallback((col) => {
     if (col === sortCol) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
     else { setSortCol(col); setSortDir('desc'); }
     setPage(1);
   }, [sortCol]);
-
-  const goPage = useCallback((p) => { setPage(p); window.scrollTo(0, 0); }, []);
+  const goPage = useCallback((p) => { setPage(p); window.scrollTo(0,0); }, []);
+  const openProduct  = useCallback((r) => setSelected(r), []);
+  const closeProduct = useCallback(() => setSelected(null), []);
 
   if (!data) return html`<div class="loading">Загрузка данных…</div>`;
 
@@ -259,7 +441,6 @@ function App() {
     : data.tabs.find(t => t.id === tab)?.hint;
 
   return html`<${Fragment}>
-    <!-- Навигация по вкладкам -->
     <nav class="tabs-nav">
       ${data.tabs.map(t => html`
         <button class=${'tab-btn'+(tab===t.id?' active':'')} onClick=${()=>switchTab(t.id)}>
@@ -270,36 +451,29 @@ function App() {
       </button>
     </nav>
 
-    <!-- Панель управления -->
     <div class="toolbar">
       <input id="search" type="search" placeholder="Поиск: название, бренд, состав…"
         value=${search} onInput=${e => { setSearch(e.target.value); setPage(1); }} />
-
       <select value=${sortCol} onChange=${e => { setSortCol(e.target.value); setPage(1); }}>
         <option value="v">По ценности (score/цена)</option>
         <option value="s">По качеству состава</option>
         <option value="p">По цене</option>
       </select>
-
       <select value=${sortDir} onChange=${e => { setSortDir(e.target.value); setPage(1); }}>
         <option value="desc">↓ убывание</option>
         <option value="asc">↑ возрастание</option>
       </select>
-
       <div class="price-wrap">
-        от <input type="number" placeholder="0"   min="0" value=${minPrice}
+        от <input type="number" placeholder="0" min="0" value=${minPrice}
               onInput=${e => { setMinPrice(e.target.value); setPage(1); }} />
-        до <input type="number" placeholder="∞"   min="0" value=${maxPrice}
+        до <input type="number" placeholder="∞" min="0" value=${maxPrice}
               onInput=${e => { setMaxPrice(e.target.value); setPage(1); }} /> ₴
       </div>
-
       <span class="badge">${filtered.length.toLocaleString('ru')} позиций</span>
     </div>
 
-    <!-- Подсказка -->
     ${hint && html`<p class="hint">${hint}</p>`}
 
-    <!-- Кнопки типов волос (только для шампуней) -->
     ${tab === 'shampoo' && html`
       <div class="hairtypes">
         ${Object.entries(data.shampoo).map(([key, prof]) => html`
@@ -309,17 +483,16 @@ function App() {
           </button>`)}
       </div>`}
 
-    <!-- Таблица -->
     <${DataTable}
-      rows=${filtered}
-      page=${page}
-      sortCol=${sortCol}
-      sortDir=${sortDir}
-      onSort=${handleSort}
+      rows=${filtered} page=${page}
+      sortCol=${sortCol} sortDir=${sortDir}
+      onSort=${handleSort} onRowClick=${openProduct}
     />
 
-    <!-- Пагинация -->
     <${Pager} page=${page} total=${filtered.length} onChange=${goPage} />
+
+    ${selected && html`
+      <${Modal} product=${selected} analogs=${analogs} onClose=${closeProduct} />`}
   <//>`;
 }
 
